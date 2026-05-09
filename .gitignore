@@ -1,0 +1,30 @@
+# Keil MDK / uVision generated files
+out_file/
+Out_File/
+seekfree.uvgui.*
+seekfree.uvproj.user
+*.crf
+*.lst
+*.lnp
+*.map
+*.axf
+*.obj
+*.o
+*.d
+*.htm
+*.log
+*.uvgui.*
+*.uvopt
+*.uvoptx
+*.uvproj.user
+*.bak
+*.tmp
+
+# Local VS Code and assistant-generated files
+.vscode/c_cpp_properties.json
+.vscode/keil-assistant.log
+
+# Common OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

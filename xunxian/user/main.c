@@ -19,11 +19,11 @@
 #define SERVO_FREQ              (50)
 #define SERVO_DUTY(x)         ((float)PWM_DUTY_MAX / (1000.0 / (float)SERVO_FREQ) * (0.5 + (float)(x) / 90.0))
 
-#define PID_P                      (400)
-#define PID_I                      (0)
-#define PID_D                      (50)
+#define PID_P                      (50)
+#define PID_I                      (15)
+#define PID_D                      (0)
 
-#define Speed                       (350) // 目标速度，单位为编码器计数每周期
+#define Speed                       (1250) // 目标速度，单位为编码器计数每周期
 
 
 
@@ -69,7 +69,7 @@ void main(void)
 
     tft180_init();
 
-    pid_l.target_val = -Speed;
+    pid_l.target_val = Speed;
     pid_r.target_val = Speed;
     
     gpio_init(KEY1_PIN, GPI, 1, GPI_PULL_UP);
@@ -80,39 +80,24 @@ void main(void)
     {
         // xunxian_scan(color);
         // printf("%d,%d,%d,%d\r\n",color[0],color[1],color[2],color[3]);
-        //pwm_set_duty(PWM_LEFT,1000);
-        //pwm_set_duty(PWM_RIGHT,1000);
 
-
-        //run_flag = run(run_flag);
-        //tft180_show_uint8(10, 10, run_flag);
         gpio_set_level(IO_P74, GPIO_HIGH); // 左轮正转
         gpio_set_level(IO_P75, GPIO_LOW);
 
         gpio_set_level(IO_P50, GPIO_HIGH); // 右轮正转 
         gpio_set_level(IO_P52, GPIO_LOW);
 
-        if(run_flag)
-        {
-            gpio_set_level(IO_P74, GPIO_HIGH); // 左轮正转
-            gpio_set_level(IO_P75, GPIO_LOW);
+        pwm_set_duty(PWM_RIGHT,1500);
+        pwm_set_duty(PWM_LEFT,1500);
 
-            gpio_set_level(IO_P50, GPIO_HIGH); // 右轮正转 
-            gpio_set_level(IO_P52, GPIO_LOW);
-        }
-        else
-        {
-            gpio_set_level(IO_P74, GPIO_LOW); // 左轮停止
-            gpio_set_level(IO_P75, GPIO_LOW);
+        tft180_show_int16(10, 50, encoder_data_dir_1);
+        tft180_show_int16(10, 70, encoder_data_dir_2);
 
-            gpio_set_level(IO_P50, GPIO_LOW); // 右轮停止
-            gpio_set_level(IO_P52, GPIO_LOW);
-        }
         
         if(pit_state)
         {
             pit_state = 0;                                                          // 周期中断触发 标志位清零
-            encoder_data_dir_1 = encoder_get_count(ENCODER_QUAD_1);                  // 获取编码器计数
+            encoder_data_dir_1 = -encoder_get_count(ENCODER_QUAD_1);                  // 获取编码器计数
             encoder_data_dir_2 = encoder_get_count(ENCODER_QUAD_2);                  // 获取编码器计数
             encoder_clear_count(ENCODER_QUAD_1);                                		// 清空编码器计数
             encoder_clear_count(ENCODER_QUAD_2);                                		// 清空编码器计数
@@ -120,18 +105,42 @@ void main(void)
             pwm_right = PID_Speed(&pid_r, encoder_data_dir_1); // 计算右轮 PWM 输出
             pwm_left = PID_Speed(&pid_l, encoder_data_dir_2); // 计算左轮 PWM 输出
 
-            if (pwm_right <0)
+            if (pwm_right >= 0) 
             {
-                pwm_right = -pwm_right;
+                // 如果 PID 需要正向发力
+                gpio_set_level(IO_P50, GPIO_HIGH); 
+                gpio_set_level(IO_P52, GPIO_LOW);
+            } 
+            else 
+            {
+                // 如果 PID 需要反向发力（刹车或倒车）
+                gpio_set_level(IO_P50, GPIO_LOW);  
+                gpio_set_level(IO_P52, GPIO_HIGH);
+                pwm_right = -pwm_right; // 设置好反转后，再提取绝对值给 PWM 寄存器
             }
-            if(pwm_left <0)
+
+            // ---------- 动态控制左轮 ----------
+            if (pwm_left >= 0) 
             {
-                pwm_left = -pwm_left;
+                // 左轮正向发力
+                gpio_set_level(IO_P74, GPIO_HIGH); 
+                gpio_set_level(IO_P75, GPIO_LOW);
+            } 
+            else 
+            {
+                // 左轮反向发力
+                gpio_set_level(IO_P74, GPIO_LOW);  
+                gpio_set_level(IO_P75, GPIO_HIGH);
+                pwm_left = -pwm_left; // 设置好反转后，再提取绝对值
             }
 
             
             pwm_set_duty(PWM_RIGHT, pwm_right);
             pwm_set_duty(PWM_LEFT, pwm_left);
+
+            tft180_show_int16(10, 10, pwm_right);
+            tft180_show_int16(10, 30, pwm_left);
+
         }
     }
 }
