@@ -18,14 +18,13 @@
 
 #define Speed                       (1250) // 目标速度，单位为编码器计数每周期
 
-
-
 uint8 Key_State = 0;
+uint8 Key_Data[5] = {0};
 uint8 pit_state = 0;
 uint8 color[4];
 
-int16 encoder_data_dir_1 = 0;
-int16 encoder_data_dir_2 = 0;
+int16 far encoder_data_right = 0;
+int16 far encoder_data_left = 0;
 
 int16 pwm_right = 0;
 int16 pwm_left = 0;
@@ -33,7 +32,6 @@ int16 pwm_left = 0;
 PID_t pid_r,pid_l;
 
 uint8 run_flag;
-
 
 void pit_handler_pid (void);
 void pit_handler_key (void);
@@ -46,97 +44,52 @@ void main(void)
     pit_ms_init(PIT_PID, 10, pit_handler_pid);                                      // 初始化 PIT 为周期中断 10ms 周期
     pit_ms_init(PIT_KEY, 1, pit_handler_key);                                      // 初始化 PIT 为周期中断 10ms 周期
     Motor_Init();
-
-    // encoder_quad_init(ENCODER_QUAD_1, ENCODER_QUAD_1_CHA, ENCODER_QUAD_1_CHB);   // 初始化编码器模块与引脚 正交解码编码器模式
-    // encoder_quad_init(ENCODER_QUAD_2, ENCODER_QUAD_2_CHA, ENCODER_QUAD_2_CHB);   // 初始化编码器模块与引脚 正交解码编码器模式
-
     PID_Init(&pid_r, PID_P, PID_I, PID_D); // 初始化右轮 PID 参数
     PID_Init(&pid_l, PID_P, PID_I, PID_D); // 初始化左轮 PID 参数
-
     pwm_init(SERVO_PWM1,SERVO_FREQ,SERVO_DUTY(90));
-    // pwm_init(PWM_LEFT, 10000, 0);      //控制轮子转速               
-    // pwm_init(PWM_RIGHT, 10000, 0);     //控制轮子转速
-    // //B组，左边
-    // gpio_init(IO_P74, GPO, 0, GPO_PUSH_PULL);
-    // gpio_init(IO_P75, GPO, 0, GPO_PUSH_PULL);
-    // //A组，右边
-    // gpio_init(IO_P50, GPO, 0, GPO_PUSH_PULL);
-    // gpio_init(IO_P52, GPO, 0, GPO_PUSH_PULL);
-
     tft180_init();
-
     pid_l.target_val = Speed;
     pid_r.target_val = Speed;
-    
     gpio_init(KEY1_PIN, GPI, 1, GPI_PULL_UP);
     run_flag = 0;
-
     // 此处编写用户代码
     while(1) 
     {
         // xunxian_scan(color);
         // printf("%d,%d,%d,%d\r\n",color[0],color[1],color[2],color[3]);
+        Key_Proc (&Key_State, Key_Data);
+        tft180_show_int16(10, 10, pwm_right);
+        tft180_show_int16(10, 30, pwm_left);
+        tft180_show_int16(10, 50, encoder_data_right);
+        tft180_show_int16(10, 70, encoder_data_left);
+        tft180_show_int16(10, 90, run_flag);
+        tft180_show_int16(10, 110, Key_Data[0]);
 
-        gpio_set_level(IO_P74, GPIO_HIGH); // 左轮正转
-        gpio_set_level(IO_P75, GPIO_LOW);
+        if(Key_Data[0] == 1)
+        {
+            run_flag = 1;
+        }
+        else
+        {
+            run_flag = 0;
+        }
 
-        gpio_set_level(IO_P50, GPIO_HIGH); // 右轮正转 
-        gpio_set_level(IO_P52, GPIO_LOW);
+        if(run_flag == 0)
+        {
+            Motor_Stop();
+        }
 
-        pwm_set_duty(PWM_RIGHT,1500);
-        pwm_set_duty(PWM_LEFT,1500);
-        Key_Proc (&Key_State);
-        tft180_show_int16(10, 50, encoder_data_dir_1);
-        tft180_show_int16(10, 70, encoder_data_dir_2);
-        tft180_show_int16(10, 90, Key_State);
-
-        if(pit_state)
+        if(pit_state && run_flag)
         {
             pit_state = 0;                                                          // 周期中断触发 标志位清零
-            encoder_data_dir_1 = -encoder_get_count(ENCODER_QUAD_1);                  // 获取编码器计数
-            encoder_data_dir_2 = encoder_get_count(ENCODER_QUAD_2);                  // 获取编码器计数
-            encoder_clear_count(ENCODER_QUAD_1);                                		// 清空编码器计数
-            encoder_clear_count(ENCODER_QUAD_2);                                		// 清空编码器计数
-
-            pwm_right = PID_Speed(&pid_r, encoder_data_dir_1); // 计算右轮 PWM 输出
-            pwm_left = PID_Speed(&pid_l, encoder_data_dir_2); // 计算左轮 PWM 输出
-
-            if (pwm_right >= 0) 
-            {
-                // 如果 PID 需要正向发力
-                gpio_set_level(IO_P50, GPIO_HIGH); 
-                gpio_set_level(IO_P52, GPIO_LOW);
-            } 
-            else 
-            {
-                // 如果 PID 需要反向发力（刹车或倒车）
-                gpio_set_level(IO_P50, GPIO_LOW);  
-                gpio_set_level(IO_P52, GPIO_HIGH);
-                pwm_right = -pwm_right; // 设置好反转后，再提取绝对值给 PWM 寄存器
-            }
-
+            get_encoder_count_right(&encoder_data_right);
+            get_encoder_count_left(&encoder_data_left);
+            pwm_right = PID_Speed(&pid_r, encoder_data_right); // 计算右轮 PWM 输出
+            pwm_left = PID_Speed(&pid_l, encoder_data_left); // 计算左轮 PWM 输出
+            // ---------- 动态控制右轮 ----------
+            Motor_Right_Run(pwm_right);
             // ---------- 动态控制左轮 ----------
-            if (pwm_left >= 0) 
-            {
-                // 左轮正向发力
-                gpio_set_level(IO_P74, GPIO_HIGH); 
-                gpio_set_level(IO_P75, GPIO_LOW);
-            } 
-            else 
-            {
-                // 左轮反向发力
-                gpio_set_level(IO_P74, GPIO_LOW);  
-                gpio_set_level(IO_P75, GPIO_HIGH);
-                pwm_left = -pwm_left; // 设置好反转后，再提取绝对值
-            }
-
-            
-            pwm_set_duty(PWM_RIGHT, pwm_right);
-            pwm_set_duty(PWM_LEFT, pwm_left);
-
-            tft180_show_int16(10, 10, pwm_right);
-            tft180_show_int16(10, 30, pwm_left);
-
+            Motor_Left_Run(pwm_left);
         }
     }
 }

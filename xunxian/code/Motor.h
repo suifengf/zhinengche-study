@@ -12,4 +12,9 @@
 #define PWM_LEFT                 (PWMB_CH3_P76)
 #define PWM_RIGHT                (PWMD_CH2_P51)
 void Motor_Init(void);
+void Motor_Stop(void);
+void Motor_Right_Run(int32 pwm_r);
+void Motor_Left_Run(int32 pwm_l);
+void get_encoder_count_left(uint16* count);
+void get_encoder_count_right(uint16* count);
 #endif

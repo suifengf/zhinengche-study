@@ -80,7 +80,8 @@ void Key_Proc (uint8* Key,uint8* Data)
 			if (KeyState == KEY_STATE_PRESSED)
 			{
 				*Key = 1;
-				*Data = 1;
+				Data[0] =!Data[0];
+                Data[1] = 1;
 			}
 			if (KeyState == KEY_STATE_LONG)
 			{
