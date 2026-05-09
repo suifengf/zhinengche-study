@@ -38,3 +38,14 @@ uint8 run(uint8 flag)
     }
     return flag;
 }
+
+
+void buzzer_on(void)
+{
+    gpio_set_level(BEEP_PIN, GPIO_HIGH);
+}
+
+void buzzer_off(void)
+{
+    gpio_set_level(BEEP_PIN, GPIO_LOW);
+}
