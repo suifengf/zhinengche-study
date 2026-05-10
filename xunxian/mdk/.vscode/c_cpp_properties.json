@@ -6,16 +6,16 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "${default}",
             "includePath": [
-                "D:/Keil5/C251/INC",
-                "D:/Keil5/C251/INC/STC",
-                "d:/STC/Study/libraries/zf_common",
-                "d:/STC/Study/libraries/zf_components",
-                "d:/STC/Study/libraries/zf_device",
-                "d:/STC/Study/libraries/zf_driver",
-                "d:/STC/Study/xunxian/user",
-                "d:/STC/Study/xunxian/code",
-                "d:/STC/Study/libraries/zf_components/stc32g_usb_lib",
-                "d:/STC/Study/libraries/zf_components/seekfree_assistant"
+                "D:/Keil_v5/C251/INC",
+                "D:/Keil_v5/C251/INC/STC",
+                "d:/STC/zhinengche-study/libraries/zf_common",
+                "d:/STC/zhinengche-study/libraries/zf_components",
+                "d:/STC/zhinengche-study/libraries/zf_device",
+                "d:/STC/zhinengche-study/libraries/zf_driver",
+                "d:/STC/zhinengche-study/xunxian/user",
+                "d:/STC/zhinengche-study/xunxian/code",
+                "d:/STC/zhinengche-study/libraries/zf_components/stc32g_usb_lib",
+                "d:/STC/zhinengche-study/libraries/zf_components/seekfree_assistant"
             ],
             "defines": [
                 "__C251__",
